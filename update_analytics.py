@@ -3,6 +3,7 @@ import json
 import requests
 from datetime import datetime
 
+# Сервер GitHub автоматически подставит сюда ваши ключи из настроек "Secrets"
 API_KEY = os.environ.get("YANDEX_API_KEY")
 FOLDER_ID = os.environ.get("YANDEX_FOLDER_ID")
 
@@ -17,20 +18,25 @@ KEYWORDS = [
     "luxury real estate tbilisi"
 ]
 
-REGIONS = [225] # Гео-ID Яндекса: 225 — вся Россия
+# Гео-ID Яндекса: 225 означает регион «Вся Россия»
+REGIONS = [225]
 
 def fetch_wordstat_data():
+    """Функция обращается к Yandex Search API и забирает свежую семантику"""
     url = "https://yandex.net"
+    
     headers = {
         "Authorization": f"Api-Key {API_KEY}",
         "x-folder-id": FOLDER_ID,
         "Content-Type": "application/json"
     }
+    
     payload = {
         "phrases": KEYWORDS,
         "geoIds": REGIONS,
-        "withRelatedPhrases": True
+        "withRelatedPhrases": True  # Просим Яндекс прислать также и похожие запросы (правую колонку)
     }
+    
     try:
         response = requests.post(url, json=payload, headers=headers)
         if response.status_code == 200:
@@ -43,11 +49,16 @@ def fetch_wordstat_data():
         return None
 
 def build_web_page(data):
+    """Функция берет полученные данные и упаковывает их в HTML-страницу"""
     phrases_html = ""
+    
+    # Проверяем, пришли ли корректные данные от Яндекса
     if data and "phrases" in data:
         for item in data["phrases"]:
-            phrase = item.get("phrase", "Неизвестный запрос")
+            phrase = item.get("phrase", "Unknown request")
             count = item.get("count", 0)
+            
+            # Формируем красивую карточку для каждого ключевого слова
             phrases_html += f"""
             <div class="keyword-card">
                 <span class="phrase">{phrase}</span>
@@ -55,8 +66,10 @@ def build_web_page(data):
             </div>
             """
     else:
-        phrases_html = "<div class='error'>Данные от Yandex API не получены. Проверьте баланс или ключи в Secrets.</div>"
+        # Текст ошибки, если API ключ не сработал или на балансе Яндекса нет баллов
+        phrases_html = "<div class='error'>Данные от Yandex API не получены. Проверьте баланс или корректность ключей в Secrets.</div>"
 
+    # Премиальный шаблон страницы в темных тонах под стиль бренда Elysium
     html_template = f"""
     <!DOCTYPE html>
     <html lang="ru">
@@ -89,6 +102,8 @@ def build_web_page(data):
     </body>
     </html>
     """
+    
+    # Записываем готовый код в файл index.html для публикации на GitHub Pages
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_template)
 
