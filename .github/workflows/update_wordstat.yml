@@ -1,1 +1,40 @@
+name: Update Wordstat Dashboard
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Автозапуск каждый понедельник в 00:00
+  workflow_dispatch: # Позволяет вам в любой момент запустить сборку кнопкой
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Скачиваем файлы из репозитория
+      uses: actions/checkout@v4
+
+    - name: Настраиваем Python на сервере
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Устанавливаем библиотеки
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Запускаем скрипт парсинга
+      env:
+        YANDEX_API_KEY: ${{ secrets.YANDEX_API_KEY }}
+        YANDEX_FOLDER_ID: ${{ secrets.YANDEX_FOLDER_ID }}
+      run: python update_analytics.py
+
+    - name: Сохраняем обновленный index.html обратно в GitHub
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@://github.com'
+        git add index.html
+        git commit -m "Авто-обновление дашборда семантики" || echo "Нет изменений"
+        git push
 
